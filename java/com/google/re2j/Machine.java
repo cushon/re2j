@@ -18,8 +18,8 @@ import java.util.List;
 class Machine {
 
   // A logical thread in the NFA.
-  private static class Thread {
-    Thread(int n) {
+  private static class MachineThread {
+    MachineThread(int n) {
       this.cap = new int[n];
     }
     int[] cap;
@@ -32,7 +32,7 @@ class Machine {
 
     static class Entry {
       int pc;
-      Thread thread;
+      MachineThread thread;
     }
 
     final Entry[] dense; // may contain stale Entries in slots >= size
@@ -68,7 +68,7 @@ class Machine {
     }
 
     // Frees all threads on the thread queue, returning them to the free pool.
-    void clear(List<Thread> freePool) {
+    void clear(List<MachineThread> freePool) {
       for(int i = 0; i < size; ++i) {
         Entry entry = dense[i];
         if (entry != null && entry.thread != null) {
@@ -105,7 +105,7 @@ class Machine {
 
   // pool of available threads
   // Really a stack:
-  private List<Thread> pool = new ArrayList<Thread>();
+  private List<MachineThread> pool = new ArrayList<MachineThread>();
 
   // Whether a match was found.
   private boolean matched;
@@ -126,7 +126,7 @@ class Machine {
 
   // init() reinitializes an existing Machine for re-use on a new input.
   void init(int ncap) {
-    for (Thread t : pool) {
+    for (MachineThread t : pool) {
       t.cap = new int[ncap];
     }
     this.matchcap = new int[ncap];
@@ -143,17 +143,17 @@ class Machine {
 
   // alloc() allocates a new thread with the given instruction.
   // It uses the free pool if possible.
-  private Thread alloc(Inst inst) {
+  private MachineThread alloc(Inst inst) {
     int n = pool.size();
-    Thread t = n > 0
+    MachineThread t = n > 0
         ? pool.remove(n - 1)
-        : new Thread(matchcap.length);
+        : new MachineThread(matchcap.length);
     t.inst = inst;
     return t;
   }
 
   // free() returns t to the free pool.
-  private void free(Thread t) {
+  private void free(MachineThread t) {
     pool.add(t);
   }
 
@@ -266,7 +266,7 @@ class Machine {
       if (entry == null) {
         continue;
       }
-      Thread t = entry.thread;
+      MachineThread t = entry.thread;
       if (t == null) {
         continue;
       }
@@ -337,7 +337,7 @@ class Machine {
   // from |pc| by following empty-width conditions satisfied by |cond|.  |pos|
   // gives the current position in the input.  |cond| is a bitmask of EMPTY_*
   // flags.
-  private Thread add(Queue q, int pc, int pos, int[] cap, int cond, Thread t) {
+  private MachineThread add(Queue q, int pc, int pos, int[] cap, int cond, MachineThread t) {
     if (pc == 0) {
       return t;
     }
